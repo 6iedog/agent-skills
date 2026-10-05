@@ -1,0 +1,123 @@
+{
+  "skill_name": "component-governance",
+  "purpose": "验证「规范/审查类需求能否触发治理包」与「巡检结果是否按契约维度归类」。治理包的价值在于权威口径，误触发或口径混乱等于没有规范。",
+  "setup": {
+    "required_ui_kit": false,
+    "note": "evals 3-5 需要一个已接入 .ui-kit/ 的项目。可先用 evals 1 或 2 初始化，再跑其余。"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "type": "core",
+      "prompt": "这个项目还没建立组件规范，帮我初始化一套",
+      "expected_output": "一次问清技术栈（框架/组件库/组件目录/样式方案/已有令牌），不拆成多轮。然后生成 tokens.json、DESIGN.md、conventions.md 与 .ui-kit/.gitignore，最后跑 scan_components.py 建 registry。",
+      "assertions": [
+        {
+          "type": "question_count",
+          "max": 6,
+          "why": "技术栈问题应一次问清（5 个问题），不要分多轮"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["tokens.json", "conventions", "DESIGN.md"],
+          "why": "三份产出物缺一不可"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["gitignore", ".ui-kit/"],
+          "why": "产出物不应污染业务仓库"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "core",
+      "prompt": "审查一下现有组件符不符合规范",
+      "expected_output": "跑 scan_components.py 建索引，再跑 check_tokens.py 与 check_contract.py。结果按契约维度分组呈现，error 与 warning 分级，error 当场修而非只列清单。",
+      "assertions": [
+        {
+          "type": "runs_scripts",
+          "expect_any": ["scan_components", "check_tokens", "check_contract"],
+          "why": "确定性检查交给脚本，不该手工逐个看文件"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["error", "warning"],
+          "why": "分级是脚本的输出，不该抹平"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["契约", "维度", "1-", "4-"],
+          "why": "结果应按七维契约归类，便于定位缺口"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "core",
+      "prompt": "现在这三个页面的按钮大小不一致，怎么统一",
+      "expected_output": "先查项目令牌里是否已有 size 轴（大概率有），应走「统一到令牌」而非逐个改。若令牌缺失则补令牌。优先级应为：新代码 > 高频组件 > 存量长尾，不做全量重构。",
+      "assertions": [
+        {
+          "type": "mentions",
+          "expect_any": ["令牌", "token", "size"],
+          "why": "统一样式应落到令牌层，不该逐处手改"
+        },
+        {
+          "type": "avoid",
+          "expect_none": ["逐个改", "全部重写", "全量重构"],
+          "why": "存量组件应按优先级渐进改，不该大重构"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "edge",
+      "prompt": "我们团队的危险操作规范是什么",
+      "expected_output": "从 conventions.md 与 interaction-ux.md 回答，引用具体条目。若项目有例外条款应一并说明。这是查询，不是建立规范。",
+      "assertions": [
+        {
+          "type": "reads_conventions",
+          "expect_any": ["conventions", "interaction-ux"],
+          "why": "规范事实来自产出物，不该凭印象答"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "edge",
+      "prompt": "帮我给这个表单加个日期范围选择",
+      "expected_output": "这是创建需求，应触发 component-create。若本 skill 被误触发，应说明自己不管创建部分并转交。",
+      "assertions": [
+        {
+          "type": "not_this_skill",
+          "expect_none": ["初始化令牌", "巡检", "契约审查"],
+          "why": "创建流程不属于治理包职责"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["component-create", "创建"],
+          "why": "应识别并转交，而非越界处理"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "should_not_trigger",
+      "prompt": "帮我把这个页面写出来",
+      "expected_output": "纯实现需求，不涉及规范制定或审查，不应触发治理包。",
+      "assertions": [
+        {
+          "type": "no_governance_flow",
+          "expect_none": ["初始化", "巡检", "令牌", "契约"],
+          "why": "写页面不需要治理流程介入"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "id 5 与 id 6 是本 skill 最关键的用例 —— 治理包最大的风险是被创建类需求误触发。",
+    "配对运行时重点看 without_skill 的表现：如果模型本来就会引用项目里的约定，说明 SKILL.md 里的这部分是冗余的。",
+    "evals 2 的 assertions 若在 without_skill 下也全过，说明脚本调用是模型自带能力（很可能因为 CLAUDE.md 里有规则），此时应考虑精简 SKILL.md。"
+  ]
+}

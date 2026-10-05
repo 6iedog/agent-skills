@@ -1,0 +1,126 @@
+{
+  "skill_name": "component-create",
+  "purpose": "验证「用户只说形态词时，AI 会不会先消歧再写代码」。这是本 skill 存在的唯一理由。",
+  "setup": {
+    "required_ui_kit": false,
+    "note": "evals 1-4 应在未接入治理的项目上跑（无 .ui-kit/），验证 skill 是否能自己发现并告知。此时生成值应标注为建议值。若需测接入后的行为，先跑 component-governance 的 evals 初始化。",
+    "optional_files": {
+      "evals/files/products-api.json": "800 条扁平商品的模拟接口返回（无层级字段），用于验证数据驱动的消歧"
+    }
+  },
+  "evals": [
+    {
+      "id": 1,
+      "type": "core",
+      "prompt": "订单页要加个下拉选择框选商品",
+      "expected_output": "先问数据特征（大概多少条 / 有没有层级关系），而不是问「你要哪种下拉」。排除方案时能说出理由。追问总数不超过 2 轮。",
+      "assertions": [
+        {
+          "type": "first_question_topics",
+          "expect_any": ["数据量", "多少条", "层级", "条数"],
+          "why": "核心断言：第一个问题必须关于数据，不能是形态名罗列"
+        },
+        {
+          "type": "must_not_ask",
+          "expect_none": ["你要哪种下拉", "单选还是多选", "单选/多选/搜索"],
+          "why": "罗列形态名等于把问题原样退回给用户"
+        },
+        {
+          "type": "question_count",
+          "max": 4,
+          "why": "单轮≤3 题、轮次上限 2 轮，即最多约 6 个问题"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "core",
+      "prompt": "商品大概 800 条，接口返回的是扁平数组，没有父子关系。做成下拉选择框",
+      "expected_output": "数据量与层级已给出，应直接排除简单下拉（滚不动）与级联/树形（无层级），收敛到可搜索选择。剩余追问应聚焦真问题（如搜索匹配哪些字段），而不是形态选择。",
+      "assertions": [
+        {
+          "type": "mentions",
+          "expect_any": ["搜索", "可搜索", "search"],
+          "why": "800 条必须可搜索，否则用户要滚动 500 项"
+        },
+        {
+          "type": "excludes_with_reason",
+          "expect_any": ["层级", "级联", "树形"],
+          "why": "无层级数据应排除级联/树形，且需说明理由"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["20", "量级", "滚"],
+          "why": "排除简单下拉的理由应基于量级"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "edge",
+      "prompt": "帮我加个商品筛选",
+      "expected_output": "形态词都没说清（筛选可能指下拉、输入框、日期区间、多条件组合容器）。应先查项目已有组件，再就「筛选区」的实际含义提问，而不是直接假设是下拉。",
+      "assertions": [
+        {
+          "type": "reads_project_first",
+          "expect_any": ["registry", ".ui-kit", "已有", "现有"],
+          "why": "复用决策必须先于形态假设"
+        },
+        {
+          "type": "question_count",
+          "max": 3,
+          "why": "一次不超过 3 题"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "edge",
+      "prompt": "确认删除这条记录",
+      "expected_output": "这是删除确认，不是创建组件。应识别为轻量确认场景，指出已有组件（如 Popconfirm 类）而非新建；同时指出删除操作应有影响面说明。",
+      "assertions": [
+        {
+          "type": "not_creates_new",
+          "expect_none": ["新建一个 Confirm 组件", "写一个删除组件"],
+          "why": "已有组件能覆盖的场景不该新建"
+        },
+        {
+          "type": "mentions",
+          "expect_any": ["已有", "复用", "确认"],
+          "why": "应指向复用路径"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "should_not_trigger",
+      "prompt": "帮我看下这个接口返回了什么字段",
+      "expected_output": "纯接口问题，不涉及 UI，不应触发本 skill，也不应开始追问形态。",
+      "assertions": [
+        {
+          "type": "no_component_discussion",
+          "expect_none": ["下拉", "形态", "组件", "追问"],
+          "why": "不涉及界面元素时不应进入组件流程"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "should_not_trigger",
+      "prompt": "这个组件样式不统一，帮我统一一下",
+      "expected_output": "这是治理需求（统一规范），应触发 component-governance 而非本 skill。本 skill 的职责边界里已声明不管统一风格。",
+      "assertions": [
+        {
+          "type": "not_this_skill",
+          "expect_none": ["形态消歧", "追问细节", "选择输入模型"],
+          "why": "统一风格是治理包的职责，create 不该接"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "assertions 是可验证的事实断言，不是主观描述。「回答质量高」这种断言会导致不同模型写法不同就误判。",
+    "配对运行：每个用例跑 with_skill 与 without_skill 两次，差值才是本 skill 的贡献。",
+    "without_skill 的输出还告诉你 SKILL.md 里哪些是模型本来就会的 —— 那些内容可以删。"
+  ]
+}
