@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 本地试验产物（.ui-kit/ 与 .ui-kit-* 一并忽略）
+.ui-kit*/
+*.log
+tmp/
+
+#agents
+.workbuddy

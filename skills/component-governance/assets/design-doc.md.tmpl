@@ -1,0 +1,121 @@
+# <组件名>
+
+> 项目级设计令牌说明（等价于组件库的 DESIGN.md）
+> 生成时间：YYYY-MM-DD
+
+## 令牌
+
+所有组件的尺寸、圆角、间距、色值必须来自本文件的令牌。**禁止在组件内硬编码。**
+
+### 颜色
+
+| 令牌 | 值 | 用途 | 机器名 |
+|---|---|---|---|
+| `color.primary` | `#1677ff` | 主要操作、选中态、链接 | `var(--color-primary)` |
+| `color.danger` | `#f5222d` | 删除、错误、危险确认 | `var(--color-danger)` |
+| `color.text` | `#262626` | 主文本 | `var(--color-text)` |
+| `color.text-secondary` | `#595959` | 次要文本、说明 | `var(--color-text-secondary)` |
+| `color.text-tertiary` | `#8c8c8c` | 占位符、禁用 | `var(--color-text-tertiary)` |
+| `color.bg` | `#f5f5f5` | 页面背景 | `var(--color-bg)` |
+| `color.bg-container` | `#ffffff` | 容器背景 | `var(--color-bg-container)` |
+| `color.border` | `#d9d9d9` | 常规边框 | `var(--color-border)` |
+
+> 危险色不得仅靠颜色传达，必须配合图标或文字（色觉障碍用户约占男性 8%）。
+
+### 尺寸
+
+| 令牌 | 值 | 用途 | 机器名 |
+|---|---|---|---|
+| `size.control-height.sm` | `24px` | 紧凑控件、表格内控件 | `var(--size-control-height-sm)` |
+| `size.control-height.md` | `32px` | 默认控件高度 | `var(--size-control-height-md)` |
+| `size.control-height.lg` | `40px` | 主要操作、独立大控件 | `var(--size-control-height-lg)` |
+| `size.radius.sm` | `4px` | 小元素圆角 | `var(--size-radius-sm)` |
+| `size.radius.md` | `6px` | 默认圆角（输入框、按钮） | `var(--size-radius-md)` |
+| `size.radius.lg` | `8px` | 卡片、弹层 | `var(--size-radius-lg)` |
+
+### 间距
+
+基数 `space.base = 4px`，所有间距必须是整数倍。
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `size.space.xs` | `8px` | 图标与文字、紧凑内边距 |
+| `size.space.sm` | `12px` | 表单 label 与控件 |
+| `size.space.md` | `16px` | 组件内边距默认 |
+| `size.space.lg` | `24px` | 组件之间 |
+| `size.space.xl` | `32px` | 区块之间 |
+
+### 层级
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `z-index.modal` | `1000` | 对话框 |
+| `z-index.dropdown` | `1050` | 下拉、选择器弹层 |
+| `z-index.tooltip` | `1080` | 文字提示 |
+| `z-index.toast` | `1100` | 全局消息 |
+
+> 禁止 `z-index: 9999` 这类魔法值——它是弹层错乱的根源且极难排查。
+
+### 动效
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `motion.duration.fast` | `0.1s` | 颜色、透明度过渡 |
+| `motion.duration.normal` | `0.2s` | 展开收起 |
+| `motion.duration.slow` | `0.3s` | 弹层进出 |
+
+必须实现 `prefers-reduced-motion` 降级。
+
+---
+
+## 使用场景
+
+> 数值在令牌里，**什么时候用哪个**在这里。两者分工明确。
+
+### 尺寸选择
+
+| 场景 | 用 | 不用 |
+|---|---|---|
+| 表格单元格内控件 | `sm` | `md` / `lg` |
+| 筛选区控件 | `sm` | `md` |
+| 普通表单控件 | `md` | — |
+| 独立主要操作按钮 | `lg` | `md` |
+| 弹窗底部主按钮 | `md` | `lg`（过大易误触） |
+
+### 语义色选择
+
+| 场景 | 用 | 不用 |
+|---|---|---|
+| 主按钮、选中态、链接 | `primary` | `success`（不要用绿色表主操作） |
+| 删除、错误、危险确认 | `danger` | `warning`（警告不是错误） |
+| 禁用文本 | `text-tertiary` | `text-secondary`（禁用必须更弱） |
+| 容器背景 | `bg-container` | `bg`（页面底色不要用在卡片里） |
+
+### 圆角选择
+
+| 场景 | 用 |
+|---|---|
+| 输入框、按钮、标签 | `radius.md` |
+| 卡片、弹层、抽屉 | `radius-lg` |
+| 小元素、徽标 | `radius-sm` |
+| 头像、圆形按钮 | `radius-full` |
+
+---
+
+## 反模式
+
+在本项目中被明确禁止的写法：
+
+- ❌ 组件内硬编码色值 → 用语义令牌
+- ❌ `z-index: 9999` → 用层级令牌
+- ❌ 魔法间距（如 `margin: 7px`）→ 用间距令牌
+- ❌ 同一页面混用多种控件尺寸
+- ❌ 禁用态灰化但无原因说明
+
+---
+
+## 维护
+
+- 令牌值变更 → 同步更新 `tokens.json` 与本文件，并跑 `check_tokens.py` 确认无组件受影响
+- 新增令牌 → 先确认无法用已有值组合达成
+- 场景规则变更 → 记录到 `logs/decisions.mdl`
