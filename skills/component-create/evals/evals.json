@@ -1,126 +1,64 @@
 {
   "skill_name": "component-create",
-  "purpose": "验证「用户只说形态词时，AI 会不会先消歧再写代码」。这是本 skill 存在的唯一理由。",
-  "setup": {
-    "required_ui_kit": false,
-    "note": "evals 1-4 应在未接入治理的项目上跑（无 .ui-kit/），验证 skill 是否能自己发现并告知。此时生成值应标注为建议值。若需测接入后的行为，先跑 component-governance 的 evals 初始化。",
-    "optional_files": {
-      "evals/files/products-api.json": "800 条扁平商品的模拟接口返回（无层级字段），用于验证数据驱动的消歧"
-    }
-  },
   "evals": [
     {
-      "id": 1,
+      "id": "core-vague-request",
       "type": "core",
-      "prompt": "订单页要加个下拉选择框选商品",
-      "expected_output": "先问数据特征（大概多少条 / 有没有层级关系），而不是问「你要哪种下拉」。排除方案时能说出理由。追问总数不超过 2 轮。",
+      "prompt": "帮我加一个下拉选择，让用户选个部门。",
+      "expected_output": "先读项目提示词与数据特征，提问 ≤3 题且总轮次 ≤2，定位到具体形态；产出七段规格文档，样式值指向样式源。",
       "assertions": [
-        {
-          "type": "first_question_topics",
-          "expect_any": ["数据量", "多少条", "层级", "条数"],
-          "why": "核心断言：第一个问题必须关于数据，不能是形态名罗列"
-        },
-        {
-          "type": "must_not_ask",
-          "expect_none": ["你要哪种下拉", "单选还是多选", "单选/多选/搜索"],
-          "why": "罗列形态名等于把问题原样退回给用户"
-        },
-        {
-          "type": "question_count",
-          "max": 4,
-          "why": "单轮≤3 题、轮次上限 2 轮，即最多约 6 个问题"
-        }
+        "提问使用预设选项，单轮不超过 3 题",
+        "提问围绕数据特征（数据量 / 层级 / 是否多选），而非直接罗列形态名",
+        "明确选定了一个具体组件（如单选下拉 / 多选下拉），而非停留在「选择类」这种类别",
+        "引用了该组件对应的预设提示词（preset/ 下的文件）作为它的完整说明",
+        "产出的规格文档包含七段标题：角色定义 / 使用流程 / Props 契约 / 状态全枚举 / 键盘与无障碍 / Do & Don't / 可扩展插槽",
+        "角色定义段落含「不解决什么」",
+        "状态枚举区分 disabled 与 readonly",
+        "规格文档未复制具体色值（未出现硬编码 hex/rgb），样式以指向样式源方式描述",
+        "消歧结论被写回项目的组件创建提示词"
       ]
     },
     {
-      "id": 2,
-      "type": "core",
-      "prompt": "商品大概 800 条，接口返回的是扁平数组，没有父子关系。做成下拉选择框",
-      "expected_output": "数据量与层级已给出，应直接排除简单下拉（滚不动）与级联/树形（无层级），收敛到可搜索选择。剩余追问应聚焦真问题（如搜索匹配哪些字段），而不是形态选择。",
-      "assertions": [
-        {
-          "type": "mentions",
-          "expect_any": ["搜索", "可搜索", "search"],
-          "why": "800 条必须可搜索，否则用户要滚动 500 项"
-        },
-        {
-          "type": "excludes_with_reason",
-          "expect_any": ["层级", "级联", "树形"],
-          "why": "无层级数据应排除级联/树形，且需说明理由"
-        },
-        {
-          "type": "mentions",
-          "expect_any": ["20", "量级", "滚"],
-          "why": "排除简单下拉的理由应基于量级"
-        }
-      ]
-    },
-    {
-      "id": 3,
+      "id": "edge-user-says-no-questions",
       "type": "edge",
-      "prompt": "帮我加个商品筛选",
-      "expected_output": "形态词都没说清（筛选可能指下拉、输入框、日期区间、多条件组合容器）。应先查项目已有组件，再就「筛选区」的实际含义提问，而不是直接假设是下拉。",
+      "prompt": "别问了，就按最常见的做法做个下拉。",
+      "expected_output": "能推断的用推断并显式告知默认值，不超提问上限；仍产出七段规格文档。",
       "assertions": [
-        {
-          "type": "reads_project_first",
-          "expect_any": ["registry", ".ui-kit", "已有", "现有"],
-          "why": "复用决策必须先于形态假设"
-        },
-        {
-          "type": "question_count",
-          "max": 3,
-          "why": "一次不超过 3 题"
-        }
+        "未进行开放式追问，提问总数不超过上限或直接采用默认",
+        "明确告知了采用的默认值",
+        "仍产出包含七段标题的规格文档"
       ]
     },
     {
-      "id": 4,
+      "id": "edge-specified-form-check-boundary",
       "type": "edge",
-      "prompt": "确认删除这条记录",
-      "expected_output": "这是删除确认，不是创建组件。应识别为轻量确认场景，指出已有组件（如 Popconfirm 类）而非新建；同时指出删除操作应有影响面说明。",
+      "prompt": "用下拉选择让用户挑 30 个标签。",
+      "expected_output": "指出用户指定形态在该场景下的边界与代价（30 个标签会撑爆控件），给出替代方案，把决定权交回用户。",
       "assertions": [
-        {
-          "type": "not_creates_new",
-          "expect_none": ["新建一个 Confirm 组件", "写一个删除组件"],
-          "why": "已有组件能覆盖的场景不该新建"
-        },
-        {
-          "type": "mentions",
-          "expect_any": ["已有", "复用", "确认"],
-          "why": "应指向复用路径"
-        }
+        "明确说明所选形态在 30 项场景下的代价",
+        "给出至少一种替代形态建议（如设上限收纳 / 穿梭框）",
+        "把决定权交回用户，而非只说「不建议」或直接拒绝"
       ]
     },
     {
-      "id": 5,
+      "id": "should-not-governance-init",
       "type": "should_not_trigger",
-      "prompt": "帮我看下这个接口返回了什么字段",
-      "expected_output": "纯接口问题，不涉及 UI，不应触发本 skill，也不应开始追问形态。",
+      "prompt": "帮整个项目初始化一套组件使用规范。",
+      "expected_output": "这属于组件治理，应由 component-governance 处理。",
       "assertions": [
-        {
-          "type": "no_component_discussion",
-          "expect_none": ["下拉", "形态", "组件", "追问"],
-          "why": "不涉及界面元素时不应进入组件流程"
-        }
+        "未以单个组件的七段规格文档作为主产物",
+        "若触发，明确转交 component-governance，或产出的是提示词集 / 规范文件"
       ]
     },
     {
-      "id": 6,
+      "id": "should-not-review",
       "type": "should_not_trigger",
-      "prompt": "这个组件样式不统一，帮我统一一下",
-      "expected_output": "这是治理需求（统一规范），应触发 component-governance 而非本 skill。本 skill 的职责边界里已声明不管统一风格。",
+      "prompt": "审查一下现有组件，看哪些不合规。",
+      "expected_output": "这属于存量审查，应由 component-governance 处理。",
       "assertions": [
-        {
-          "type": "not_this_skill",
-          "expect_none": ["形态消歧", "追问细节", "选择输入模型"],
-          "why": "统一风格是治理包的职责，create 不该接"
-        }
+        "未产出单个组件的七段规格文档",
+        "未走「新建组件」的消歧流程"
       ]
     }
-  ],
-  "notes": [
-    "assertions 是可验证的事实断言，不是主观描述。「回答质量高」这种断言会导致不同模型写法不同就误判。",
-    "配对运行：每个用例跑 with_skill 与 without_skill 两次，差值才是本 skill 的贡献。",
-    "without_skill 的输出还告诉你 SKILL.md 里哪些是模型本来就会的 —— 那些内容可以删。"
   ]
 }
