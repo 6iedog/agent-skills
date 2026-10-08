@@ -1,0 +1,497 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><!-- 示例产物：为控制体积已抽掉内嵌音频；实际生成时音频会以 base64 内嵌 -->
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>2026-10-08（周四）</title><style>
+:root{
+  --paper:#faf8f4; --card:#ffffff; --ink:#1c1b19; --ink-2:#4a4744; --ink-3:#8a857e;
+  --line:#e8e3da; --accent:#b4531f; --accent-soft:#fdf3ec; --chip:#f2ede4;
+  --shadow:0 1px 2px rgba(28,27,25,.04),0 8px 24px -12px rgba(28,27,25,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 1px 1px, rgba(28,27,25,.045) 1px, transparent 0);
+  background-size:22px 22px;
+}
+.wrap{max-width:760px;margin:0 auto;padding:56px 24px 96px}
+.kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:14px}
+h1.title{font-family:Georgia,"Songti SC","Noto Serif SC",serif;font-size:40px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+.dateline{color:var(--ink-3);font-size:14px;margin-bottom:28px}
+.lede{font-family:Georgia,"Songti SC","Noto Serif SC",serif;font-size:19px;line-height:1.7;color:var(--ink-2);
+  border-left:3px solid var(--accent);padding:2px 0 2px 16px;margin:0 0 32px}
+
+/* ---- 播放列表控制器 ---- */
+.player{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+  box-shadow:var(--shadow);margin:0 0 26px;position:sticky;top:10px;z-index:30;backdrop-filter:blur(6px)}
+.prow{display:flex;align-items:center;gap:12px}
+.playbtn{flex:none;width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;background:var(--accent);color:#fff;
+  display:grid;place-items:center;box-shadow:0 4px 12px -2px rgba(180,83,31,.45);transition:transform .15s ease}
+.playbtn:hover{transform:scale(1.05)} .playbtn:active{transform:scale(.97)}
+.playbtn svg{width:19px;height:19px;fill:currentColor}
+.pmeta{flex:1;min-width:0}
+.track{font-size:13.5px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.track .no{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:6px}
+.track.idle{color:var(--ink-3);font-weight:400}
+.bar{flex:1;height:5px;border-radius:99px;background:var(--line);cursor:pointer;position:relative;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--accent);border-radius:99px;display:block}
+.time{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
+.mini{flex:none;border:1px solid var(--line);background:var(--chip);color:var(--ink-2);border-radius:8px;
+  width:30px;height:30px;display:grid;place-items:center;cursor:pointer}
+.mini svg{width:14px;height:14px;fill:currentColor}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.speed{flex:none;border:1px solid var(--line);background:var(--chip);color:var(--ink-2);font-size:12px;
+  border-radius:99px;padding:5px 10px;cursor:pointer;font-weight:600;height:30px}
+.speed:hover{border-color:var(--accent);color:var(--accent)}
+.speed.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wave{display:flex;align-items:flex-end;gap:2px;height:20px;flex:none}
+.wave i{width:3px;border-radius:2px;background:var(--accent);opacity:.3;height:30%;display:block}
+.player.playing .wave i{animation:wb 1s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.15s}.wave i:nth-child(3){animation-delay:.3s}
+.wave i:nth-child(4){animation-delay:.45s}.wave i:nth-child(5){animation-delay:.6s}
+@keyframes wb{0%,100%{height:25%}50%{height:100%}}
+.player-foot{display:flex;align-items:center;gap:10px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.hint{font-size:11.5px;color:var(--ink-3)}
+
+/* ---- nav chips ---- */
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 34px}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--chip);border:1px solid var(--line);
+  border-radius:99px;padding:6px 13px;font-size:13px;color:var(--ink-2);text-decoration:none;transition:all .15s}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chip span{font-size:11px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.chip:hover span{color:var(--accent)}
+
+/* ---- sections ---- */
+section{margin:0 0 38px;scroll-margin-top:120px}
+.sec-head{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.sec-num{font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:.08em}
+.sec-name{font-size:13px;font-weight:700;letter-spacing:.16em;color:var(--ink-2);text-transform:uppercase}
+.secplay{margin-left:auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--chip);
+  color:var(--ink-3);font-size:11.5px;border-radius:99px;padding:4px 11px;cursor:pointer;font-weight:600}
+.secplay svg{width:11px;height:11px;fill:currentColor}
+.secplay:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:14px;
+  box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s;scroll-margin-top:130px}
+.item.playing{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
+.item.note{background:transparent;border-style:dashed;box-shadow:none;padding:11px 16px;color:var(--ink-3);font-size:13px}
+.item.note p{color:var(--ink-3);font-size:13px;margin:0}
+.item-head{display:flex;align-items:flex-start;gap:13px}
+.itemplay{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--chip);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer;transition:all .15s;margin-top:1px}
+.itemplay svg{width:15px;height:15px;fill:currentColor;margin-left:1px}
+.itemplay:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.item.playing .itemplay{background:var(--accent);color:#fff;border-color:var(--accent)}
+.item.playing .itemplay svg{margin-left:0}
+.ttl{flex:1;min-width:0}
+.item h3{margin:0 0 10px;font-size:18px;line-height:1.5;font-weight:700}
+.dur{flex:none;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;padding-top:10px}
+.item p{margin:0 0 10px;color:var(--ink-2);font-size:15.5px}
+.item p:last-child{margin-bottom:0}
+.src{font-size:12px;color:var(--ink-3);margin-top:10px}
+.src a{color:var(--ink-3);text-decoration:none;border-bottom:1px dotted var(--line)}
+.src a:hover{color:var(--accent)}
+.insight{background:var(--accent-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14.5px;color:#7c3a12;line-height:1.7}
+.insight b,.insight strong{color:var(--accent);font-weight:700;margin-right:2px}
+
+/* ---- tail ---- */
+.quiet{background:transparent;border:1px dashed var(--line);border-radius:12px;padding:14px 18px;color:var(--ink-3);font-size:14px;margin:0 0 30px}
+.thread{background:linear-gradient(135deg,#1c1b19,#3a352f);color:#f5f1ea;border-radius:16px;padding:26px 28px;margin:0 0 30px;box-shadow:var(--shadow)}
+.thread .cap{font-size:11px;letter-spacing:.2em;color:#c8a98c;font-weight:700;margin-bottom:10px}
+.thread p{margin:0;font-size:16.5px;line-height:1.8}
+.thread strong{color:#fff}
+footer{border-top:1px solid var(--line);padding-top:20px;color:var(--ink-3);font-size:12.5px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:640px){
+  .wrap{padding:36px 16px 72px}
+  h1.title{font-size:30px}
+  .player{position:static}
+  .thread{padding:20px}
+  .item{padding:16px 17px}
+  .dur{display:none}
+}
+@media print{body{background:#fff}.player,.itemplay,.secplay{display:none}.item{break-inside:avoid}}
+</style></head><body><div class="wrap"><div class="player" id="player"><div class="prow"><button class="playbtn" id="playbtn" aria-label="播放"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="pmeta"><div class="track idle" id="track"></div><div class="prow"><span class="time" id="cur">0:00</span><div class="bar" id="bar"><i id="fill"></i></div><span class="time" id="dur">--:--</span></div></div><div class="wave"><i></i><i></i><i></i><i></i><i></i></div></div><div class="player-foot"><button class="mini" id="prev" aria-label="上一条"><svg viewBox="0 0 24 24"><path d="M6 5h3v14H6zm11 0v14l-9-7z"/></svg></button><button class="mini" id="next" aria-label="下一条"><svg viewBox="0 0 24 24"><path d="M15 5h3v14h-3zM6 5l9 7-9 7z"/></svg></button><button class="speed" id="speed">1×</button><button class="speed on" id="auto">连播 开</button><span class="hint">播完自动接下一条</span></div></div>
+<div class="kicker">Daily Brief</div>
+<h1 class="title">2026-10-08（周四）</h1>
+<div class="dateline">2026-10-08 · 语音版 · 17 段 · 共 20:52</div>
+<div class="lede">今天是假期结束的第一天——A股开门，美联储的会议纪要也刚好在同一分钟砸下来：加息还没停。外部的世界在继续往&quot;贵&quot;的方向走，内部的世界在继续把&quot;写代码&quot;这件事往便宜的方向压。</div>
+<nav class="nav"><a class="chip" href="#s1">Vibe Coding<span>3</span></a><a class="chip" href="#s6">热门软件<span>3</span></a><a class="chip" href="#s7">金融<span>3</span></a><a class="chip" href="#s2">Web 开发<span>2</span></a><a class="chip" href="#s3">软件设计<span>2</span></a><a class="chip" href="#s4">产品经理<span>2</span></a><a class="chip" href="#s5">极客<span>2</span></a></nav>
+<section id="s1">
+<div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Vibe Coding</span>
+<button class="secplay" data-from="0" data-to="2"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="0" data-title="Anthropic 发布 Claude Haiku 5.5：运行成本降 75%，">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Anthropic 发布 Claude Haiku 5.5：运行成本降 75%，小模型第一次能调推理强度</h3>
+</div>
+<span class="dur">1:17</span>
+</div>
+<p>Anthropic 在 10 月 7 日推出 Haiku 5.5，定位是高吞吐、成本敏感的场景：摘要、压缩、数据库查询、分类，也可以作为 Opus 5.5 和 Sonnet 5.5 手下的子智能体。官方口径是&quot;运行成本比 Haiku 4.5 平均低 75%&quot;，同时把 Sonnet 5.5 的缓存读取价砍了一半。这是 Haiku 系列第一次带上可调节的 effort 设置，性能和开销可以自己拉滑块。</p>
+<div class="src">来源：<a href="https://www.anthropic.com/claude-haiku-5-5" target="_blank" rel="noopener">anthropic.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 真正让这条有分量的不是降价，是那张 benchmark 表——Agentic coding 的 Terminal-Bench 4.0，Haiku 4.5 是 0.0%，Haiku 5.5 跳到 39.2%。上代小模型在真正的终端任务里根本接不住活，这一代能干一部分了。对老大的意义很直接：如果某个 Agent 流程里有大量&quot;不重要但要跑很多次&quot;的环节（摘要、去重、分类），换 Haiku 5.5 的账是算得过来的。另外提醒一句，Anthropic 这轮是在冲刺史上最大 IPO 的时间点上发小模型的，时间点不是巧合。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="1" data-title="GPT-6 走进 ChatGPT，顺带带来一个叫 Intelligent UI ">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>GPT-6 走进 ChatGPT，顺带带来一个叫 Intelligent UI 的东西</h3>
+</div>
+<span class="dur">1:16</span>
+</div>
+<p>OpenAI 10 月 7 日宣布 GPT-6 进入 ChatGPT：付费档（Plus/Pro/Business/Enterprise）用更强的 GPT-6 Sol，免费档和 Go 从 10 月 8 日起陆续拿到更轻的 GPT-6 Luna。同时上线 Intelligent UI——回复不再是一堵文字墙，而是按问题性质动态拼出图表、可点按钮、表单，甚至一次性小工具（账单分摊器、计算器、小游戏）。另一个变化是生成方式：模型可以边想边答，信息逐步补进回复里，不用等推理全程跑完。</p>
+<div class="src">来源：<a href="https://9to5mac.com/2026/10/07/openai-brings-gpt-6-to-chatgpt-and-debuts-intelligent-ui/" target="_blank" rel="noopener">9to5mac.com</a> · <a href="https://www.wired.com/story/openai-chatgpt-intelligent-ui-is-more-show-than-tell" target="_blank" rel="noopener">wired.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** &quot;模型自己决定给你什么界面&quot;这件事，今年 Google 在 Search 里做过一次（generative UI），现在 OpenAI 把它推到十二亿用户面前。Wired 那篇上手稿里有一句被很多人忽略的话：OpenAI 自己承认模型的排版品味还需要改进。这个方向的真正冲击不在聊天框，而在设计师——界面开始由模型按单次查询临时生成，传统的&quot;设计稿→实现&quot;流程在这里是被绕过而不是被加速。今天可以试试的原因是免费档今天开始推。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="2" data-title="Meta 和微软同时砍自家内部的 Claude 用量，Meta 的理由是怕蒸馏污">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Meta 和微软同时砍自家内部的 Claude 用量，Meta 的理由是怕蒸馏污染</h3>
+</div>
+<span class="dur">1:19</span>
+</div>
+<p>据 The Information、经证券时报转述：Meta 内部 Claude Code 用户从年初约 6 万人掉到约 3 万人，微软把内部 Anthropic 支出预算砍掉三分之一以上（原本预计至少 10 亿美元/年），并引导工程师转去 GitHub Copilot。Meta 那边除了自研的 MetaCode（已超 3 万内部用户）和 Muse Code（6000+ 用户），还有一层更要命的顾虑：怕工程师用 Claude/Codex 开发 MetaCode 本身，输出的合成数据污染自家模型训练管线，构成事实上的蒸馏。内部备忘录提到这可能引发&quot;与合作伙伴的严重升级&quot;。有意思的是，Meta 在最近一个 28 天周期里仍然为 Claude Code 花了超过 1.05 亿美元。</p>
+<div class="src">来源：<a href="https://stcn.com/article/detail/4206878.html" target="_blank" rel="noopener">stcn.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这条最大的信息其实是对外的：两家仍然继续向客户出售 Claude，只是自己不用了。&quot;自己人不用却对外卖&quot;是 AI 商业化里一个很有代表性的信号——钱可以赚，但不再认为对方的能力是不可替代的。另外那个蒸馏顾虑值得单独记住：任何一家正在训练自家模型的公司，现在都要回答&quot;工程师能不能随便用竞品 AI&quot;这个问题。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s2">
+<div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Web 开发</span>
+<button class="secplay" data-from="3" data-to="4"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="3" data-title="Chrome 155 起原生支持 JPEG XL 解码，比 JPEG 小 30–">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Chrome 155 起原生支持 JPEG XL 解码，比 JPEG 小 30–50%</h3>
+</div>
+<span class="dur">1:09</span>
+</div>
+<p>Chrome 官方博客 10 月 6 日宣布，从 Chrome 155 开始提供 JPEG XL（.jxl）格式的解码支持。官方列的好处：比 JPEG 好 30–50% 的压缩率、原生无损压缩、内建 HDR、以及无损 JPEG 转码（把存量 JPEG 转过去不掉画质且能再压一轮）。建议是两种格式都试试再定。</p>
+<div class="src">来源：<a href="https://developer.chrome.com/blog/jpeg-xl-in-chrome" target="_blank" rel="noopener">developer.chrome.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这个格式从 2021 年就开始吵，中途被 Chrome 撤过一次实验性支持，2026 年才真正落地，够得上&quot;迟到的胜利&quot;。要提醒的是这次只有解码，没有编码——意味着浏览器能读，但你要产出 .jxl 得靠 libjxl 之类的离线工具或构建流程。对已有大量 JPEG 资产的站，无损转码那条才是真正的省钱路径：不用重出图、不用重新做CDN策略，体积就下来了。这条当天在 HN 拿到 471 分，社区也是这么看的。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="4" data-title="一个把 WebGPU 着色器做成组件的库，React/Vue/Svelte/So">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>一个把 WebGPU 着色器做成组件的库，React/Vue/Svelte/Solid 都能直接用</h3>
+</div>
+<span class="dur">0:45</span>
+</div>
+<p>开源项目 shaders，把 GPU 着色器效果包装成了各主流前端框架的可复用组件，覆盖 React、Vue、Svelte、Solid、原生 JS 和 Framer。HN 上有 61 分、32 条评论。</p>
+<div class="src">来源：<a href="https://github.com/shader-effects-inc/shaders" target="_blank" rel="noopener">github.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** WebGPU 这东西的原理不难，难的是每次都要自己铺一遍管线、缓冲区、适配器检测、降级兜底。把它变成 <code>&lt;Shader&gt;</code> 标签之后，&quot;给页面加个动态背景&quot;从半天工作量变成装个依赖。分数不高但很实用，属于那种记在小本子上、下次要用时能省时间的库。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s3">
+<div class="sec-head"><span class="sec-num">03</span><span class="sec-name">软件设计</span>
+<button class="secplay" data-from="5" data-to="6"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="5" data-title="Push ifs up and fors down：这条习语的代数结构，以及它在">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Push ifs up and fors down：这条习语的代数结构，以及它在哪儿失效</h3>
+</div>
+<span class="dur">1:03</span>
+</div>
+<p>一篇把程序员圈子里流传的口诀往上抬了一层的文章。口诀出自 TigerBeetle 的 Tiger Style（分支放在父函数、非分支逻辑下沉），matklad 也专门写过；这篇更进一步，把它和数据库里的&quot;早投影、晚连接&quot;、以及函数式里的 filter 与 map 之间的那条律对应起来——本质上说的是：把条件判断往上推，就是在缩小数据的状态空间，让下游函数活在更小的子对象上。</p>
+<div class="src">来源：<a href="https://debasishg.github.io/blog/push-ifs-up-fors-down/" target="_blank" rel="noopener">debasishg.github.io</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 大多数关于这条口诀的讨论停留在&quot;可读性更好&quot;，这篇把它做成了可以证明的东西——filter 和 map 之间那条律（先 filter 再 map == 先 map 再 filter 但保留所有元素）解释了为什么这个重构是安全的、什么时候不安全。如果你写的是那种&quot;一个函数接十种输入&quot;的代码，这篇比任何 Clean Code 章节都对症。文章也诚实地划了边界，不是无条件适用。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="6" data-title="永远的初级：有哪些能力，AI 是没法替你练出来的">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>永远的初级：有哪些能力，AI 是没法替你练出来的</h3>
+</div>
+<span class="dur">0:48</span>
+</div>
+<p>Criteo 技术团队的一篇，题目是 Forever junior——如果所有&quot;练手&quot;的活都被 AI 代劳了，那通向高级的那段路实际上被抽掉了。文章列出了他认为 AI 无法替你发展的能力清单。HN 上 64 分、56 条评论，评论区对这个命题的反驳和补充比正文更热闹。</p>
+<div class="src">来源：<a href="https://tech.criteo.com/blog/human-skills-ai-cant-develop-junior-engineers/" target="_blank" rel="noopener">tech.criteo.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这个话题容易写成空话，但它是从一家真在用 AI 写代码的公司内部写出来的，落点在&quot;哪些环节不能省&quot;。配合前几天 Vibe Coding 那边连续出现的&quot;vibecoding 不如手写爽&quot;&quot;手写的人反而更快&quot;这类自反苗头看，2026 年下半年这股情绪已经开始从边缘渗进主流了。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s4">
+<div class="sec-head"><span class="sec-num">04</span><span class="sec-name">产品经理</span>
+<button class="secplay" data-from="7" data-to="8"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="7" data-title="小米澎湃 OS 4 宣布全面兼容苹果生态，从互传到桌面接续全打通">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>小米澎湃 OS 4 宣布全面兼容苹果生态，从互传到桌面接续全打通</h3>
+</div>
+<span class="dur">1:03</span>
+</div>
+<p>10 月 7 日小米官宣：澎湃 HyperOS 4 支持信息双向同步、小米手机与 iPhone 云相册互相查看、通知双向同步并可直接在另一台设备上回复；&quot;贴贴互联&quot;负责照片/文件/联系人/网页链接的跨系统直传；妙享桌面扩展到 Mac、iPhone、iPad 三件套，可以在苹果设备上接续小米手机的桌面环境和工作状态。</p>
+<div class="src">来源：<a href="https://news.zol.com.cn/1257/12572892.html" target="_blank" rel="noopener">news.zol.com.cn</a> · <a href="https://www.ithome.com/1/010/361.htm" target="_blank" rel="noopener">ithome.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 一个&quot;做错也不亏&quot;的功能包。小米真正动的不是某个技术点，而是那一整套让用户不敢换安卓的、细碎的黏性：AirDrop、iCloud 照片、通知同步、设备接续。把这些一条条拆掉之后，&quot;我买了 iPhone 就下不去了&quot;这个前提开始松动。产品上的判断是：与其跟 iOS 比系统体验，不如把&quot;双持的摩擦成本&quot;干到零——这是安卓阵营里目前最聪明的一记侧身。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="8" data-title="研究：Claude 和 ChatGPT 会按用户的&quot;财富画像&quot;给出不同的购物价格">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>研究：Claude 和 ChatGPT 会按用户的&quot;财富画像&quot;给出不同的购物价格</h3>
+</div>
+<span class="dur">0:47</span>
+</div>
+<p>彭博的一篇报道引了一项研究：当用户表现出不同的财富特征时，同一件商品在 AI 助手给出的购物建议中会带有不同价格。HN 上 88 分、32 条评论。</p>
+<div class="src">来源：<a href="https://www.bloomberg.com/news/newsletters/2026-10-07/study-claude-chatgpt-ai-bots-offer-different-shopping-prices-based-on-wealth" target="_blank" rel="noopener">bloomberg.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这件事一旦成立，AI 电商推荐就从&quot;推荐什么&quot;升级到了&quot;报什么价&quot;——定价权开始从商家手里往模型手里挪，而且挪动过程是不可见的。对一个做产品的人来说，这是新的一类责任归属问题：价格歧视过去至少在某个可见的页面里发生，现在它在一次对话里发生。注意这是研究，不是官方功能，口径以原文和研究设计为准。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s5">
+<div class="sec-head"><span class="sec-num">05</span><span class="sec-name">极客</span>
+<button class="secplay" data-from="9" data-to="10"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="9" data-title="三个国家顶级域被劫持，攻击者用它给 Google 等大厂签出了假 TLS 证书">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>三个国家顶级域被劫持，攻击者用它给 Google 等大厂签出了假 TLS 证书</h3>
+</div>
+<span class="dur">1:33</span>
+</div>
+<p>Google 10 月 6 日披露：攻击者控制了 .gh（加纳）、.sl（塞拉利昂）、.as（美属萨摩亚）三个国家顶级域，修改了域内部分权威 DNS 记录和 NS 委派，从而顺利通过 CA 的域名控制权校验（DCV），为&quot;若干 Google 域名&quot;以及&quot;若干全球头部品牌和广泛使用的在线服务&quot;签出了未授权证书。Google 强调自家系统没有被入侵，也没有理由认为签发那些证书的 CA 做错了什么——它们只是按规则办事。Chrome 已通过 CRLSets 封掉所有已识别的证书，并推动 CA 吊销，但 Google 的原话很诚实：无法保证分析覆盖到每一个受影响域名，Chrome 的手段也不可靠地保护非 Chrome 用户。</p>
+<div class="src">来源：<a href="https://arstechnica.com/security/2026/10/hackers-obtain-counterfeit-tls-certificates-for-google-and-other-large-services/" target="_blank" rel="noopener">arstechnica.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong><strong> 2011 年 DigiNotar 事件是 CA 被攻破、规则被绕过；这次规则完全没坏，坏的是喂给规则的那一层输入。很好的一个思维模型：</strong>当信任链的下游检查全自动化之后，攻击会整体向上移到&quot;谁来配置那些记录&quot;这一层。** 给你的行动建议（Google 自己给的）：盯 CT 日志（crt.sh），配严格的 CAA 记录限定哪些 CA 能签发。还有一个容易被忽略的点——CA 会复用一段有效期内的历史校验结果，劫持窗口结束后攻击者可能仍在拿缓存的校验继续签新证书。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="10" data-title="PS5 越狱正在以前所未有的速度层层突破">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>PS5 越狱正在以前所未有的速度层层突破</h3>
+</div>
+<span class="dur">0:45</span>
+</div>
+<p>PS5 的越狱进展正在急速推进，赛道比以往任何时候都热闹，索尼的加固似乎跟不上节奏。HN 上 101 分、122 条评论。</p>
+<div class="src">来源：<a href="https://www.pushsquare.com/news/2026/10/ps5-jailbreaks-are-escalating-at-an-unprecedented-pace-and-sony-cant-seem-to-keep-up" target="_blank" rel="noopener">pushsquare.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 一台卖了几千万台的消费设备在发售第五年进入&quot;防线持续被撬&quot;阶段，这在主机史上属于偏快的一档。这条对老大的意义不在于去折腾主机，而在于它重复了安全领域的一个老规律：任何一个广泛部署的、由厂商单方面控制更新节奏的设备，一旦漏洞足够密集，攻防速度的天平会不可逆地倒向攻方。同类的判断可以平移到 IoT 和车机上。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s6">
+<div class="sec-head"><span class="sec-num">06</span><span class="sec-name">热门软件</span>
+<button class="secplay" data-from="11" data-to="13"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="11" data-title="微软把 Agent 沙箱做成操作系统能力，MXC 正式 GA，同时发了 Surf">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>微软把 Agent 沙箱做成操作系统能力，MXC 正式 GA，同时发了 Surface Laptop Ultra</h3>
+</div>
+<span class="dur">1:50</span>
+</div>
+<p>10 月 7 日微软在旧金山的 Windows &amp; Surface 活动上宣布 Microsoft Execution Containers（MXC）正式可用。简单说，这是一个策略驱动的隔离层：由组织定义某个 Agent 能碰哪些文件、能连哪些网络，且在执行时强制生效；和与本机&quot;混合智能&quot;深度整合后，还能出一份 Report 说明这个工作负载实际尝试碰过哪些资源，用来推最小权限策略。已有 Codex、GitHub Copilot、OpenClaw、Replit、LM Studio 支持，Claude Code、Manus、Perplexity、Raycast 等在跟进。硬件方面，Surface Laptop Ultra 搭载 NVIDIA RTX Spark，最高 128GB 统一内存、约 1 Petaflop FP4 算力，起售价 2599 美元，宣称本地能跑超过 1200 亿参数的模型，10 月 16 日上市。</p>
+<div class="src">来源：<a href="https://aka.ms/WindowsEraofAI" target="_blank" rel="noopener">aka.ms</a> · <a href="https://www.unite.ai/nvidia-and-microsoft-bring-rtx-spark-laptops-ai-agents-to-windows-pcs" target="_blank" rel="noopener">unite.ai</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这条真正的意思不在那台笔记本，在于&quot;给 AI Agent 划边界&quot;这件事第一次被做成了操作系统级的通用设施，而不是每个工具各自实现一套权限。过去半年所有关于 Agent 安全的讨论都在吵架&quot;要不要给它文件系统权限&quot;，微软的解法是把这变成一个可以写策略、可以审计、可以进 Intune 管的层。老黄那句&quot;MXC 会像当年 Windows + DirectX 改变应用那样改变 Agent 的构建和部署&quot;当然是场面话，但方向判断是对的。另外注意 MXC 支持 Enforcement / Learning / Permissive 三档——那个 Learning 模式挺聪明，先跑一遍看它想碰什么，再据此时收紧。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="12" data-title="Docker 官方入场：docker-agent，用 YAML 定义 Agent">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Docker 官方入场：docker-agent，用 YAML 定义 Agent，还能推送到任意 OCI 仓库</h3>
+</div>
+<span class="dur">1:20</span>
+</div>
+<p>Docker 工程团队开源了 docker-agent，一个 docker CLI 插件（<code>docker agent run agent.yaml</code>）。特点是：YAML 声明式配置、多 Agent 编排（root agent 自动分派任务）、任意 MCP server（本地/远程/容器化）都能当工具、模型供给方中立（OpenAI/Anthropic/Gemini/Bedrock/Mistral/xAI/Docker Model Runner），内置 think / todo / memory 工具，RAG 支持 BM25+向量+混合+重排，最妙的一点是打包后可以 push 到任何 OCI registry 然后到处 pull 下来跑。Docker Desktop 4.63+ 已内置该插件。</p>
+<div class="src">来源：<a href="https://github.com/docker/docker-agent" target="_blank" rel="noopener">github.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** &quot;把 Agent 当镜像分发的思路&quot;——这是整件事里最有价值的一句。Agent 配置现在最大的问题是不可版本化、不可复现，Docker 用他们最熟的那一套（YAML + OCI registry）把这个坑填了。HN 上 163 分、75 条评论，说明开发者认这个账。如果你已经在用 Docker，试错成本基本是零：<code>brew install docker-agent</code>，写八行 YAML，跑起来。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="13" data-title="Google 的 Playground：在浏览器里用提示词做游戏，Unity S">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>Google 的 Playground：在浏览器里用提示词做游戏，Unity Spark 已在路上</h3>
+</div>
+<span class="dur">1:22</span>
+</div>
+<p>Google 于 10 月 7 日推出 Playground，浏览器端、不用写代码的&quot;实验性游戏平台&quot;。文本框描述你要什么，AI 生成游戏，可以改物理、改规则、改角色、改场景，做完能用链接分享或发布到 Explore 画廊，部分品类支持排行榜和多人。底层是 Gemini + Nano Banana + Lyria 配一个内部游戏打磨过的 harness。目前仅美国、18 岁以上，免费但按周限制 token，Google One 订阅者额度更高。同时发布的还有与 Unity 合作的 Unity Spark，走专业级机制和高保真 3D，封闭 beta 即将开放。</p>
+<div class="src">来源：<a href="https://www.theverge.com/tech/1006477/google-playground-unity-spark-ai" target="_blank" rel="noopener">theverge.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 这是 83 天内的第三次——Roblox 7 月出 Build，Meta 上个月出 Horizon Create/Studio，现在轮到 Google。三家在同一个窗口做同一件事，说明&quot;提示词生成可玩游戏&quot;已经从实验变成平台战略。但要清醒：现在的产物规模感跟精致的 Roblox 小游戏一个量级，真正的门槛不在生成，在留存。判断 Unity Spark 比 Playground 本身更值得跟踪——它是 Google 用来把天花板往上抬的那一个。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<section id="s7">
+<div class="sec-head"><span class="sec-num">07</span><span class="sec-name">金融</span>
+<button class="secplay" data-from="14" data-to="16"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 本节</button>
+</div>
+<div class="item" data-idx="14" data-title="美联储 9 月会议纪要：9 月加了息，多数官员认为年底前还能再加">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>美联储 9 月会议纪要：9 月加了息，多数官员认为年底前还能再加</h3>
+</div>
+<span class="dur">1:19</span>
+</div>
+<p>10 月 7 日公布的美联储 FOMC 9 月 15—16 日会议纪要显示，全体成员一致同意把联邦基金利率目标区间上调 25 个基点到 3.75%—4.00%。关键在下一句：&quot;多数与会者认为，在今年年底前进一步提高联邦基金利率目标区间可能是合适的。&quot;纪要同时指出通胀相对 2% 目标依然偏高、近几个月降通胀&quot;未取得足够进展&quot;，并把原因指向两方面——地缘局势推高原油和成品油价格，以及 AI 相关投资激增加剧通胀压力。目前 10 年期美债收益率维持在 5.3% 以上，是本轮最直接的外部约束。</p>
+<div class="src">来源：<a href="https://m.chinanews.com/wap/detail/chs/zw/jw691425.shtml" target="_blank" rel="noopener">m.chinanews.com</a> · <a href="https://news.qq.com/rain/a/20261008A022PP00" target="_blank" rel="noopener">news.qq.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong><strong> 这份纪要最反直觉的地方是——AI 投资热潮在这里被当成</strong>通胀来源**而不是增长引擎写进了 Fed 的文件。这意味着&quot;AI 越热，利率越难下来&quot;成了一个有官方背书的说法，而不是分析师的观点。对 A股而言，几乎所有券商的节后策略都把同一个变量放在首位：不是 Fed 十月加不加，而是长端美债收益率能不能出现大级别拐点。这条是今天开盘前最该看的一份文件。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="15" data-title="A股今天开门：假期里港股先走了四个交易日，累跌 1.96%，南向今日恢复">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>A股今天开门：假期里港股先走了四个交易日，累跌 1.96%，南向今日恢复</h3>
+</div>
+<span class="dur">1:27</span>
+</div>
+<p>10 月 8 日是国庆假期后 A股首个交易日，港股通（南向）同日恢复服务。港股假期内共四个交易日（10/2、5、6、7），恒生指数累计跌 1.96%，国企指数跌 1.67%，恒生科技跌 1.4%；受南向缺席影响，除 10 月 2 日外其余三天成交额均不足 1000 亿港元，属年内地量水平。10 月 7 日港股收盘：恒指跌 0.62% 报 24130.50 点，国企指数跌 0.57% 报 8082.40 点，恒生科技跌 0.68% 报 4194.49 点，当日机械板块领涨（潍柴动力涨近 5%）、生物医药领跌（金斯瑞跌近 13%）。</p>
+<div class="src">来源：<a href="https://www.cnfin.com/gs-lb/detail/20261007/4477764_1.html" target="_blank" rel="noopener">cnfin.com</a> · <a href="https://stcn.com/article/detail/4207020.html" target="_blank" rel="noopener">stcn.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 假期里真正替 A股定价的就是港股那四天，答案偏负面但不惨烈（-1.96%，且成交极度清淡，下跌成色不足）。今天开盘的三个观察点：高开幅度、量能能否快速回到两万亿以上、以及资金是否从节前抱团的煤炭公用事业切回 PCB / 半导体 / AI 算力。机构一致押&quot;红十月&quot;，但历史日历效应只对&quot;修复&quot;有效，不对&quot;突破&quot;有效。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+<div class="item" data-idx="16" data-title="美股 10 月 7 日收盘：三大指数集体下跌，存储分化，黄金股普跌">
+<div class="item-head">
+<button class="itemplay" aria-label="播放这条"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<div class="ttl">
+<h3>美股 10 月 7 日收盘：三大指数集体下跌，存储分化，黄金股普跌</h3>
+</div>
+<span class="dur">1:41</span>
+</div>
+<p>美东时间周三（10 月 7 日）美股三大指数集体收跌：道指跌 0.66% 报 51179.87 点，纳指跌 0.22% 报 27538.69 点，标普 500 跌 0.22% 报 7801.77 点。七跌四涨，工业和材料板块分别以 2.14%、1.53% 领跌，医疗和非必需消费领涨。个股方面 Meta 跌 2.38%，英伟达跌 0.74%；存储概念分化，美光涨 4.06%、闪迪涨 1.92%、SK 海力士跌 2.36%、西部数据跌 1.37%；黄金股普遍下跌超 2.7%；银行股全线走低。同一天 IMF 总裁格奥尔基耶娃在新加坡表示，即使海湾地区战事很快结束，从布伦特原油期货走势看，高油价预计仍将持续到 2027 年。</p>
+<div class="src">来源：<a href="https://m.chinanews.com/wap/detail/chs/zw/jw691425.shtml" target="_blank" rel="noopener">m.chinanews.com</a> · <a href="https://news.qq.com/rain/a/20261008A022PP00" target="_blank" rel="noopener">news.qq.com</a></div>
+<div class="insight"><strong>为什么值得看 ·</strong>** 对比着看会很清楚——上一交易日（10/6）是&quot;指数创新高 + 存储崩盘（希捷跌超 9%）&quot;，这一天是&quot;指数小跌 + 存储分化、美光反弹 4%&quot;。存储那个方向在两天内把恐慌消化掉了大半，说明昨天那波更像是获利了结而非趋势反转。真正需要盯的是 IMF 那句话：油价高位持续到明年，意味着 Fed 纪要里&quot;地缘推高能源价格&quot;这条通胀成因短期内消不掉，加息预期也就难真正松动。</div>
+<audio preload="metadata" src=""></audio>
+</div>
+</section>
+<div class="quiet">今天安静的领域：没有。</div>
+<div class="thread"><div class="cap">今日主线</div><p>两股力量在今天早上同时发力，方向正好相反：<strong>一边是 AI 编码能力的拼命降价</strong>（Haiku 5.5 成本降 75%、GPT-6 免费下放、Docker 把 Agent 做成可分发镜像），另一边是<strong>算力、资金和安全边界的持续收紧</strong>（美联储还在加息、10 年期美债破 5.3%、微软把 Agent 沙箱做进操作系统、三个国家顶级域被劫持签出假证书）。便宜的是&quot;让机器做事&quot;，贵的是&quot;给它做事的权限与环境&quot;。 A股今天开门，外部定价的输入是：假期里纳指涨了近 3% 创新高、港股四个交易日累跌 1.96%、美债收益率居高不下。先看量能能不能回到两万亿，再看资金会不会从节前的煤炭公用事业切回科技成长。</p></div>
+<footer><span>铁蛋 · 晨间情报</span><span>2026-10-08 · 语音 17 段</span></footer></div><script>
+(function(){
+  var cards=[].slice.call(document.querySelectorAll('.item[data-idx]'));
+  var btn=document.getElementById('playbtn'),track=document.getElementById('track'),
+      fill=document.getElementById('fill'),bar=document.getElementById('bar'),
+      curT=document.getElementById('cur'),durT=document.getElementById('dur'),
+      sp=document.getElementById('speed'),autoBtn=document.getElementById('auto'),
+      prev=document.getElementById('prev'),next=document.getElementById('next'),
+      player=document.getElementById('player');
+  var A={},order=[];
+  cards.forEach(function(c){
+    var a=c.querySelector('audio'); if(!a) return;
+    var i=parseInt(c.getAttribute('data-idx'),10);
+    A[i]={el:c,au:a,title:c.getAttribute('data-title')||''};
+    order.push(i);
+  });
+  order.sort(function(x,y){return x-y;});
+  if(!order.length) return;
+
+  var curIdx=-1, auto=true, stopAt=-1;
+  var rates=[1,1.25,1.5,2], ri=0, rate=1;
+  var IP='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+      IPa='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  function fmt(s){ if(!isFinite(s)) return '0:00'; s=Math.floor(s); var m=Math.floor(s/60),x=s%60; return m+':'+(x<10?'0':'')+x; }
+  function mark(i){ cards.forEach(function(c){ c.classList.toggle('playing', parseInt(c.getAttribute('data-idx'),10)===i); }); }
+  function label(){
+    if(curIdx<0){ track.className='track idle'; track.textContent='点任意卡片上的播放键，或从这里整份连播'; return; }
+    track.className='track';
+    track.innerHTML='<span class="no">'+(order.indexOf(curIdx)+1)+'/'+order.length+'</span>'+A[curIdx].title;
+  }
+  function prog(){
+    var a=curIdx<0?null:A[curIdx].au;
+    if(!a||!a.duration){ fill.style.width='0%'; curT.textContent='0:00'; durT.textContent='--:--'; return; }
+    fill.style.width=(a.currentTime/a.duration*100)+'%';
+    curT.textContent=fmt(a.currentTime); durT.textContent=fmt(a.duration);
+  }
+  function stopOthers(except){ order.forEach(function(i){ if(i!==except){ var a=A[i].au; if(!a.paused) a.pause(); } }); }
+  function play(i){
+    if(!(i in A)) return;
+    stopOthers(i); curIdx=i;
+    var a=A[i].au; a.playbackRate=rate;
+    var p=a.play(); if(p&&p.catch) p.catch(function(){});
+    mark(i); label(); player.classList.add('playing'); btn.innerHTML=IPa;
+    var r=A[i].el.getBoundingClientRect();
+    if(r.top<60||r.top>window.innerHeight-120) A[i].el.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  function toggle(i){
+    if(curIdx!==i){ play(i); return; }
+    if(A[i].au.paused){ A[i].au.play(); } else { A[i].au.pause(); }
+  }
+  function reset(){
+    if(curIdx>=0) mark(-1);
+    curIdx=-1; stopAt=-1; player.classList.remove('playing'); btn.innerHTML=IP;
+    fill.style.width='0%'; curT.textContent='0:00'; durT.textContent='--:--'; label();
+  }
+  function step(d){
+    var k=order.indexOf(curIdx);
+    if(k<0){ stopAt=-1; play(order[0]); return; }
+    var n=k+d;
+    if(n<0||n>=order.length) return;
+    if(d>0 && stopAt>=0 && order[n]>stopAt) return;
+    play(order[n]);
+  }
+
+  order.forEach(function(i){
+    var a=A[i].au;
+    a.addEventListener('play',function(){ if(i===curIdx){ btn.innerHTML=IPa; player.classList.add('playing'); } });
+    a.addEventListener('pause',function(){ if(i===curIdx){ btn.innerHTML=IP; player.classList.remove('playing'); } });
+    a.addEventListener('timeupdate',function(){ if(i===curIdx) prog(); });
+    a.addEventListener('loadedmetadata',function(){ if(i===curIdx) prog(); });
+    a.addEventListener('ended',function(){
+      if(i!==curIdx) return;
+      var k=order.indexOf(i);
+      var nx=(k>=0&&k<order.length-1)?order[k+1]:-1;
+      if(auto && nx>=0 && (stopAt<0 || nx<=stopAt)) play(nx);
+      else reset();
+    });
+  });
+
+  cards.forEach(function(c){
+    var b=c.querySelector('.itemplay');
+    if(!b) return;
+    b.addEventListener('click',function(){ toggle(parseInt(c.getAttribute('data-idx'),10)); });
+  });
+
+  [].slice.call(document.querySelectorAll('.secplay')).forEach(function(b){
+    b.addEventListener('click',function(){
+      stopAt=parseInt(b.getAttribute('data-to'),10);
+      play(parseInt(b.getAttribute('data-from'),10));
+    });
+  });
+
+  btn.addEventListener('click',function(){
+    if(curIdx<0){ stopAt=-1; play(order[0]); } else toggle(curIdx);
+  });
+  prev.addEventListener('click',function(){ step(-1); });
+  next.addEventListener('click',function(){ step(1); });
+  sp.addEventListener('click',function(){
+    ri=(ri+1)%rates.length; rate=rates[ri];
+    order.forEach(function(i){ A[i].au.playbackRate=rate; });
+    sp.textContent=(rates[ri]===1?'1':String(rates[ri]))+'×';
+  });
+  autoBtn.addEventListener('click',function(){
+    auto=!auto; autoBtn.classList.toggle('on',auto);
+    autoBtn.textContent=auto?'连播 开':'连播 关';
+  });
+  function seek(e){
+    if(curIdx<0) return;
+    var a=A[curIdx].au; if(!a.duration) return;
+    var r=bar.getBoundingClientRect();
+    var x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    a.currentTime=Math.min(1,Math.max(0,x/r.width))*a.duration;
+  }
+  bar.addEventListener('click',seek);
+  bar.addEventListener('touchmove',seek);
+  document.addEventListener('keydown',function(e){
+    if(e.code==='Space'&&e.target===document.body){ e.preventDefault(); if(curIdx<0){ stopAt=-1; play(order[0]); } else toggle(curIdx); }
+  });
+  label();
+})();
+</script></body></html>

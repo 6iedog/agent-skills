@@ -22,3 +22,7 @@ tmp/
 
 #agents
 .workbuddy
+
+# daily-brief 本地产物（示例早报除外）
+skills/daily-brief/assets/*.mp3
+skills/daily-brief/assets/*.audio/
