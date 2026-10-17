@@ -1,0 +1,86 @@
+{
+  "skill_name": "weread-podcast-transcript",
+  "evals": [
+    {
+      "id": "core-export-flow",
+      "type": "core",
+      "prompt": "把微信读书里《毛选心法》这个播客的文稿全部导出来，我要本地能看的版本。",
+      "expected_output": "先 scan.py --list --pull 定位 albumId，再 scan.py --album <id> 建索引；缺集用 warm.py 补；最后 export.py 输出 目录.md + 每集一个 md。",
+      "assertions": [
+        "调用了 scripts/scan.py 且执行过 --pull（或 --dirs 指向已有快照），未凭空假设 albumId",
+        "输出目录下存在 目录.md，其表格表头为「集数 | 标题 | 时长 | 字数 | 句数 | 时间轴 | 首句」",
+        "输出目录下存在与索引集数相同数量的单集 md，文件名形如 001_<标题>.md",
+        "至少抽查一集 md，其正文每一行都以 [数字:两位数字] 形式的时间戳开头",
+        "目录.md 表格的数据行数等于索引里的集数，且没有空行占位"
+      ]
+    },
+    {
+      "id": "core-time-slice",
+      "type": "core",
+      "prompt": "第 5 集从 1 分 30 秒开始，后面都给我。",
+      "expected_output": "用 fetch.py --ep 5 --from 01:30，返回该时间点之后的句子，而不是整集。",
+      "assertions": [
+        "调用了 scripts/fetch.py 且带 --from 参数",
+        "输出中所有句子行的时间戳都不早于 00:00，且主体落在 01:30 之后（允许含 1 条跨越 01:30 的句子）",
+        "返回内容长度小于该集全文长度",
+        "未因为找不到集号而要求用户重新提供集号（索引里应有 trackIdx 与集号对应）"
+      ]
+    },
+    {
+      "id": "core-album-agnostic",
+      "type": "core",
+      "prompt": "换一个节目试试：库里那本《悲剧的诞生》，把它的文稿也导一份。",
+      "expected_output": "把它当成另一个 albumId 走同一套 scan → export 流程，不修改脚本里的硬编码专辑。",
+      "assertions": [
+        "生成的索引文件名是 index_<新 albumId>.json，不是毛选心法的 albumId",
+        "scripts/ 下的 .py 文件中不含硬编码的专辑标题或 albumId 字面量（如 3110116986）",
+        "导出目录的 目录.md 标题用的是新专辑名，不是上一部节目的名字"
+      ]
+    },
+    {
+      "id": "edge-missing-transcript",
+      "type": "edge",
+      "prompt": "有些集导出后是空的，怎么办？",
+      "expected_output": "先用 warm.py --missing 触发落库并 --pull 重建索引；仍为空的判定为该集本身没有 AI 文稿，如实告知而不伪造内容。",
+      "assertions": [
+        "引导执行 scripts/warm.py 且带 --missing（或 --ep 指定缺集）",
+        "说明「必须打开过该集 AI 文稿页才会落库」这一前提",
+        "对仍然缺文稿的集，导出的 md 内是「（本集暂无 AI 文稿）」这类显式标注，而不是空白或编造正文",
+        "没有把缺文稿的集从 目录.md 的表格里删掉（行数仍等于总集数）"
+      ]
+    },
+    {
+      "id": "edge-pause-before-read",
+      "type": "edge",
+      "prompt": "导到一半发现文案跟标题对不上，后面几集都错位了。",
+      "expected_output": "识别出是播放推进导致自动跳集/文稿页滚动，检查是否在切集后重新核对标题并暂停。",
+      "assertions": [
+        "指出「播完一集会自动跳下一集」或「文稿页跟随播放自动滚动」这两个成因之一",
+        "给出的修复步骤包含「切集后先暂停」或「重新核对当前集标题」",
+        "未把错位归因于缓存损坏而建议清空应用数据"
+      ]
+    },
+    {
+      "id": "should_not_trigger-download-audio",
+      "type": "should_not_trigger",
+      "prompt": "帮我把这集播客的音频下载下来，我要离线听。",
+      "expected_output": "不触发本技能——本技能只取文字，不处理音频文件。",
+      "assertions": [
+        "未调用 scripts/ 下任何脚本",
+        "明确说明本技能只处理 AI 文稿、不下载音频",
+        "给出了符合实际的替代路径（如用客户端自带的下载功能）"
+      ]
+    },
+    {
+      "id": "should_not_trigger-content-qa",
+      "type": "should_not_trigger",
+      "prompt": "《毛选心法》第 3 集主要讲了什么？帮我总结一下。",
+      "expected_output": "这是对已有内容的问答，不需要跑采集流程；除非用户明确要重新抓取，否则不触发本技能的 scan/export。",
+      "assertions": [
+        "未执行 warm.py（不为了回答问题去驱动手机 UI）",
+        "如果本地已有导出结果，优先读取本地文件而非重新抓取",
+        "回答内容基于实际文稿，未凭空编造该集内容"
+      ]
+    }
+  ]
+}
